@@ -222,3 +222,142 @@ What's next:
 I want to further understand the user behavior patterns, so that we can better recommend products and services for users, and better improve the conversion rate
 
 
+### B)	How’s customer behavior path?
+
+What’s users’ most active date
+```
+--search users most active date
+select format_date('%Y%m%d', event_time) as days, count(user_id) as total_count
+from `ecommerce-analysis-345602.ecommers.cosmetics`
+where event_type='view'
+group by days
+order by days;
+```
+<img width="502" alt="time" src="https://user-images.githubusercontent.com/101906347/169900120-4ae2b9b0-8303-4eff-b357-93c80cd77334.png">
+
+Conclusion: 
+users 'view' shows a declining trend, I think people returning to work after Christmas holidays, and they are getting busier and don’t have time to shop online
+
+What’s users most active time?
+```
+--search users most active time period
+select EXTRACT(HOUR FROM event_time) as hours, count(user_id) as total_count
+from `ecommerce-analysis-345602.ecommers.cosmetics`
+where event_type='view'
+group by hours
+order by hours;
+```
+<img width="468" alt="period" src="https://user-images.githubusercontent.com/101906347/169900283-0be5d0c2-82ba-4be5-a068-f8b96045b0d1.png">
+
+Conclusion:
+People usually browse the website at 12pm and 7pm, I think because 12pm is around lunch time and 7pm user’s free time after work.
+
+Suggestions:
+I suggest that we can reduce the marketing expenses after the holidays and better don’t launch new products during this period and target right customer at right time. If I have the user behavior dataset of whole year (2020), I can dig into more business pattern and seasonality to generate insight to help company maximize efficiency and anticipate future trend.
+
+### C)	How each product contributes to business?
+
+•	Which product has high conversion rate?
+```
+-- search the products which has high conversion rate
+select product_id, count(user_id) as total_count
+from `ecommerce-analysis-345602.ecommers.cosmetics`
+group by product_id
+order by total_count desc;
+```
+<img width="468" alt="product 1" src="https://user-images.githubusercontent.com/101906347/169900574-fd73e3f0-1bda-4b32-bc5b-5222535831db.png">
+
+Conclusion: 
+The top 3 most popular products are:5809910, 5808664 and 5809912. However, there is a big gap between the total sales of the third place and the top two.
+
+What's next:
+I am curious, how many users will continue to repurchase? 
+Are they repurchasing the same product?
+
+```
+-- search cumulative number of produts for different purchases times
+select purchase_times,count(product_id) as total_purchase_count
+from
+(select product_id, count(user_id) as purchase_times
+from `ecommerce-analysis-345602.ecommers.cosmetics`
+where event_type='purchase'
+group by product_id) as buypool
+group by purchase_times
+order by purchase_times;
+```
+
+<img width="461" alt="re1" src="https://user-images.githubusercontent.com/101906347/169901012-041324f0-b4d4-4ec7-aba0-f4c8e8d4ccf9.png">
+
+![re2](https://user-images.githubusercontent.com/101906347/169901073-a34b3646-15da-43ad-a671-3ed0aa97dc0e.png)
+
+Conclusion: 
+Combining the graphs generated from the search results, we can see that most consumers repurchase within single digits. This result is consistent with the long tail effect.
+
+```
+--search cumulative number of category for different purchases times
+select purchase_times,count(category_id) as total_purchase_count
+from
+(select category_id, count(user_id) as purchase_times
+from `ecommerce-analysis-345602.ecommers.cosmetics`
+where event_type='purchase'
+group by category_id) as buypool
+group by purchase_times
+order by purchase_times;
+```
+
+
+<img width="457" alt="cat1" src="https://user-images.githubusercontent.com/101906347/169901349-981acb75-72e3-437c-bb10-d1301a349b28.png">
+
+![cat2](https://user-images.githubusercontent.com/101906347/169901359-229f0024-8273-4621-949f-79820f3b3f3e.png)
+
+The results show that most people's shopping objects only focus on a certain product, but only a small number of people buy a variety of products, which is also in line with the long tail effect
+
+### D)	Who are the most valuable customers?
+•	Find the customers with the highest purchase rate
+ # Find the customers with the highest purchase rate
+```
+--Customer purchase rate ranking
+select user_id, count(user_id) as total_count
+from `ecommerce-analysis-345602.ecommers.cosmetics`
+where event_type='purchase'
+group by user_id
+order by count(user_id) desc;
+```
+
+<img width="468" alt="custon1" src="https://user-images.githubusercontent.com/101906347/169901623-1a4d009d-fe51-48f1-a8a9-402b23187dd9.png">
+
+Conclusion: 
+The customers who shopped the most on Feb 2020 are: 601469771, 480463194, 620029655 , For customers who place a lot of orders,we should recommend more products of similar or higher price to their favorite products, to achieve both cross-sale and up-sale.
+
+But how do we know what they like? We need to do further analysis, here I take the customer (user_id:601469771) who purchased the most as an example.
+
+```
+#Analyze the purchasing habits of a single user, and the analysis object is No.1(user_id:601469771) customer
+-- what is NO.1 user's favoriate product
+select product_id, count(user_id) as total_purchase
+from `ecommerce-analysis-345602.ecommers.cosmetics`
+where user_id= 601469771 and event_type='purchase'
+group by product_id
+order by count(user_id) desc;
+```
+
+<img width="451" alt="custon2" src="https://user-images.githubusercontent.com/101906347/169901856-529b2a2c-1815-4ee3-8d5d-452eecb90fba.png">
+
+Conclusion: 
+His/her purchases product are evenly distributed, which doesn't help us recommend his/her favorite product. But I haven't analyzed what kind of category he/she likes the most? Maybe I can make recommendations based on his/her preference product category. 
+
+```
+-- what is NO.1 user's favoriate product category
+select category_id, count(user_id) as total_purchase
+from `ecommerce-analysis-345602.ecommers.cosmetics`
+where user_id= 601469771 and event_type='purchase'
+group by category_id
+order by count(user_id) desc;
+```
+
+<img width="468" alt="cstom3" src="https://user-images.githubusercontent.com/101906347/169902002-d615a7d4-6578-4e85-ab19-64f17e966e56.png">
+
+
+Conclusion: 
+1487580007575323592 is NO.1 user's favorite category, we can recommend more products of this category to him/her in the future.
+
